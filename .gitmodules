@@ -1,0 +1,3 @@
+[submodule "libs/coralmicro_VL53L8CX_ULD_driver"]
+	path = libs/coralmicro_VL53L8CX_ULD_driver
+	url = git@github.com:jc-cr/coralmicro_VL53L8CX_ULD_driver.git
