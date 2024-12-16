@@ -18,9 +18,9 @@ extern "C" {
 #include <stdio.h>
 #include <memory>
 
-namespace coralmicro {
-    bool init_gpio();
+#include "sensor_queues.hh"
 
+namespace coralmicro {
     // Task
     void tof_task(void* parameters);
 
@@ -33,13 +33,11 @@ namespace coralmicro {
     void print_sensor_error(const char* operation, uint8_t status);
     void print_results(VL53L8CX_ResultsData* results);
 
-
-
+    // Constants
     static constexpr Gpio kLpnPin = Gpio::kPwm0;
     static constexpr I2c kI2c = I2c::kI2c1;
     
-    // Add configuration constants
-    static constexpr uint16_t kAddress = 0x29;
+    static constexpr uint16_t kAddress = 0x29; // 0x58 >> 1
     static constexpr uint8_t kResolution = VL53L8CX_RESOLUTION_8X8;
     static constexpr uint8_t kRangingFrequency = 15; // Hz
     static constexpr uint8_t kIntegrationTime = 10;  // ms
