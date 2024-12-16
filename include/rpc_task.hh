@@ -1,0 +1,6 @@
+#include "libs/base/led.h"
+#include "libs/camera/camera.h"
+#include "libs/rpc/rpc_http_server.h"
+#include "libs/rpc/rpc_utils.h"
+#include "third_party/freertos_kernel/include/FreeRTOS.h"
+#include "third_party/freertos_kernel/include/task.h"
