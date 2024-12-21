@@ -1,19 +1,34 @@
-#include "task_config_m7.hh"
-#include "logo.hh"
 
 #include "third_party/freertos_kernel/include/FreeRTOS.h"
 #include "third_party/freertos_kernel/include/task.h"
+
+#include "sensor_queues.hh"
+
+#include "task_config_m7.hh"
+#include "logo.hh"
 
 namespace coralmicro {
 namespace {
 
 const char* PROJECT_NAME = "PCB Bringup";
 
-TaskErr_t setup_tasks() {
+void setup_tasks() {
     printf("Starting M7 task creation...\r\n");
-    TaskErr_t ret = CreateM7Tasks();
-    printf("M7 task creation returned: %d\r\n", static_cast<int>(ret));
-    return ret;
+
+    // Init queues
+    // BOOL return type
+    if (!InitQueues()) {
+        printf("Failed to initialize queues\r\n");
+        vTaskSuspend(nullptr);
+    }
+    
+    // Task creation
+    // TaskErr_t return type
+    if (CreateM7Tasks() != TaskErr_t::OK)
+    {
+        printf("Failed to create M7 tasks\r\n");
+        vTaskSuspend(nullptr);
+    }
 }
 
 [[noreturn]] void main_m7() {
@@ -23,11 +38,7 @@ TaskErr_t setup_tasks() {
     printf("%s\r\n\n", PROJECT_LOGO);
 
     // Initialize M7 tasks
-    TaskErr_t task_status = setup_tasks();
-    if (task_status != TaskErr_t::OK) {
-        printf("Failed to initialize M7 tasks, suspending...\r\n");
-        vTaskSuspend(nullptr);
-    }
+    setup_tasks();
 
     printf("Entering M7 main loop\r\n");
     while (true) {
