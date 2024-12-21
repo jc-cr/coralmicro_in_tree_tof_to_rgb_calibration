@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 project(coralmicro_in_tree_tof_to_rgb_calibration)
 
 add_subdirectory(libs/coralmicro_VL53L8CX_ULD_driver)
-add_subdirectory(libs/msgpack-mcu)
 
 
 # Define task source files for each core
@@ -12,7 +11,7 @@ set(M4_TASK_SOURCES
 set(M7_TASK_SOURCES
     src/tof_task.cc
     src/camera_task.cc
-    src/stream_task.cc
+    src/rpc_task.cc
 )
 
 # Define paths for task configuration
@@ -64,7 +63,6 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/coralmicro_VL53L8CX_ULD_driver/Platform
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/coralmicro_VL53L8CX_ULD_driver/VL53L8CX_ULD_API/inc
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/msgpack-mcu/include
 )
 
 # Add dependency on task configuration for M7
@@ -76,7 +74,6 @@ target_link_libraries(${PROJECT_NAME}
         libs_rpc_http_server
         libs_rpc_utils
         vl53l8cx_driver
-        msgpack-mcu
         libs_base-m7_freertos
 )
 
