@@ -4,3 +4,6 @@
 [submodule "libs/msgpack-mcu"]
 	path = libs/msgpack-mcu
 	url = git@github.com:jc-cr/msgpack-mcu.git
+[submodule "freertos_task_config_generator"]
+	path = freertos_task_config_generator
+	url = git@github.com:jc-cr/freertos_task_config_generator.git

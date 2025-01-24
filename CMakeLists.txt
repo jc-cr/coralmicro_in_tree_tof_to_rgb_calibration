@@ -3,6 +3,7 @@ project(coralmicro_in_tree_tof_to_rgb_calibration)
 
 add_subdirectory(libs/coralmicro_VL53L8CX_ULD_driver)
 
+enable_language(ASM)
 
 # Define task source files for each core
 set(M4_TASK_SOURCES
@@ -11,9 +12,9 @@ set(M4_TASK_SOURCES
 )
 
 set(M7_TASK_SOURCES
+    src/m7/m7_ipc_task.cc
     src/m7/tof_task.cc
     src/m7/rpc_task.cc
-    src/m7/m7_ipc_task.cc
 )
 
 # Define paths for task configuration
@@ -58,6 +59,77 @@ add_custom_target(${PROJECT_NAME}_generate_task_config
 )
 
 
+
+
+# M7 Core Executable
+add_executable_m7(${PROJECT_NAME}
+    src/m7/main_m7.cc
+    ${TASK_CONFIG_M7_SOURCE}
+    ${M7_TASK_SOURCES}
+
+    M4_EXECUTABLE ${PROJECT_NAME}_m4
+)
+
+# Set include directories for M7
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/m7
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/coralmicro_VL53L8CX_ULD_driver/Platform
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/coralmicro_VL53L8CX_ULD_driver/VL53L8CX_ULD_API/inc
+)
+
+# Add dependency on task configuration for M7
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_task_config)
+
+# Link libraries for M7
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        vl53l8cx_driver
+        libs_rpc_http_server
+        libs_rpc_utils
+        libs_base-m7_freertos
+)
+
+# M7 compiler flags
+target_compile_options(${PROJECT_NAME}
+    PRIVATE
+        -mcpu=cortex-m7
+        -mthumb
+        -mfpu=fpv5-d16
+        -mfloat-abi=hard
+        -Os
+        -ffunction-sections
+        -fdata-sections
+        -fno-exceptions
+        -fno-rtti
+        -g0
+        -ffast-math
+        -fshort-enums
+        -fno-unwind-tables
+        -fno-asynchronous-unwind-tables
+        -Wall
+        -Wextra
+        $<$<COMPILE_LANGUAGE:C>:-std=c11>
+        $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>
+
+)
+
+# M7 linker flags
+target_link_options(${PROJECT_NAME}
+    PRIVATE
+        -mcpu=cortex-m7
+        -mthumb
+        -mfpu=fpv5-d16
+        -mfloat-abi=hard
+        -Wl,-Map=${PROJECT_NAME}.map
+        -Wl,--print-memory-usage
+        -Wl,--gc-sections
+        -Wl,--sort-section=alignment
+        -Wl,--cref
+)
+
+
 # M4 Core Executable
 add_executable_m4(${PROJECT_NAME}_m4
     src/m4/main_m4.cc
@@ -69,6 +141,7 @@ add_executable_m4(${PROJECT_NAME}_m4
 target_include_directories(${PROJECT_NAME}_m4
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/m4
 )
 
 # Add dependency on task configuration for M4
@@ -109,72 +182,6 @@ target_link_options(${PROJECT_NAME}_m4
         -mcpu=cortex-m4
         -mthumb
         -mfpu=fpv4-sp-d16
-        -mfloat-abi=hard
-        -Wl,-Map=${PROJECT_NAME}.map
-        -Wl,--print-memory-usage
-        -Wl,--gc-sections
-        -Wl,--sort-section=alignment
-        -Wl,--cref
-)
-
-
-# M7 Core Executable
-add_executable_m7(${PROJECT_NAME}
-    src/m7/main_m7.cc
-    ${TASK_CONFIG_M7_SOURCE}
-    ${M7_TASK_SOURCES}
-    M4_EXECUTABLE ${PROJECT_NAME}_m4
-)
-
-# Set include directories for M7
-target_include_directories(${PROJECT_NAME}
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/coralmicro_VL53L8CX_ULD_driver/Platform
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/coralmicro_VL53L8CX_ULD_driver/VL53L8CX_ULD_API/inc
-)
-
-# Add dependency on task configuration for M7
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_task_config)
-
-# Link libraries for M7
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        vl53l8cx_driver
-        libs_rpc_http_server
-        libs_rpc_utils
-        libs_base-m7_freertos
-)
-
-# M7 compiler flags
-target_compile_options(${PROJECT_NAME}
-    PRIVATE
-        -mcpu=cortex-m7
-        -mthumb
-        -mfpu=fpv5-d16
-        -mfloat-abi=hard
-        -Os
-        -ffunction-sections
-        -fdata-sections
-        -fno-exceptions
-        -fno-rtti
-        -g0
-        -ffast-math
-        -fshort-enums
-        -fno-unwind-tables
-        -fno-asynchronous-unwind-tables
-        -Wall
-        -Wextra
-        $<$<COMPILE_LANGUAGE:C>:-std=c11>
-        $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>
-)
-
-# M7 linker flags
-target_link_options(${PROJECT_NAME}
-    PRIVATE
-        -mcpu=cortex-m7
-        -mthumb
-        -mfpu=fpv5-d16
         -mfloat-abi=hard
         -Wl,-Map=${PROJECT_NAME}.map
         -Wl,--print-memory-usage

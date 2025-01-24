@@ -23,7 +23,6 @@ extern "C" {
 #include "vl53l8cx_api.h"
 }
 
-#include "state_definitions.hh"
 
 namespace coralmicro {
 

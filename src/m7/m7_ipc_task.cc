@@ -40,7 +40,7 @@ void rx_data(const uint8_t data[kIpcMessageBufferDataSize]) {
             const auto* camera_data = reinterpret_cast<const CameraData*>(msg->data);
 
             // Place in inference input queue
-            xQueueOverwrite(*M7IpcTaskQueues::inference_input_queue, camera_data);
+            xQueueOverwrite(*M7IpcTaskQueues::input_queue, camera_data);
 
             break;
         }

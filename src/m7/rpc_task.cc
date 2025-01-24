@@ -6,7 +6,7 @@ namespace coralmicro {
      void get_frame(struct jsonrpc_request* request) {
          CameraData camera_data;
          
-         if (xQueuePeek(RpcTaskQueues::camera_queue, &camera_data, 0) != pdTRUE) {
+         if (xQueuePeek(*RpcTaskQueues::camera_queue, &camera_data, 0) != pdTRUE) {
              jsonrpc_return_error(request, -1, "No camera data available", nullptr);
              return;
          }
@@ -25,7 +25,7 @@ namespace coralmicro {
          VL53L8CX_ResultsData results;
          
          // Try to get latest TOF frame without waiting
-         if (xQueuePeek(RpcTaskQueues::tof_queue, &results, 0) != pdTRUE) {
+         if (xQueuePeek(*RpcTaskQueues::tof_queue, &results, 0) != pdTRUE) {
              jsonrpc_return_error(request, -1, "No TOF data available", nullptr);
              return;
          }
