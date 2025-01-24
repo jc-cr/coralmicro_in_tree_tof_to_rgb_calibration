@@ -1,13 +1,12 @@
 // AUTO-GENERATED FILE FROM "scripts/generate_tasks.py"
 // EDIT AT YOUR OWN RISK.
 
-#include "task_config_m7.hh"
+#include "m4/task_config_m4.hh"
 #include <string.h>
 
 // Task implementations
-#include "camera_task.hh"
-#include "rpc_task.hh"
-#include "tof_task.hh"
+#include "m4/camera_task.hh"
+#include "m4/m4_ipc_task.hh"
 
 namespace coralmicro {
 namespace {
@@ -21,27 +20,19 @@ struct TaskConfig {
     TaskHandle_t* handle;
 };
 
-constexpr TaskConfig kM7TaskConfigs[] = {
+constexpr TaskConfig kM4TaskConfigs[] = {
     {
         camera_task,
         "Camera_Task",
-        STACK_SIZE_LARGE,
-        0,
-        TASK_PRIORITY_MEDIUM,
-        nullptr
-    },
-    {
-        tof_task,
-        "TOF_Task",
         STACK_SIZE_MEDIUM,
         0,
         TASK_PRIORITY_MEDIUM,
         nullptr
     },
     {
-        rpc_task,
-        "RPC_Task",
-        STACK_SIZE_LARGE,
+        m4_ipc_task,
+        "M4_IPC_Task",
+        STACK_SIZE_MEDIUM,
         0,
         TASK_PRIORITY_MEDIUM,
         nullptr
@@ -50,10 +41,10 @@ constexpr TaskConfig kM7TaskConfigs[] = {
 
 } // namespace
 
-TaskErr_t CreateM7Tasks() {
+TaskErr_t CreateM4Tasks() {
     TaskErr_t status = TaskErr_t::OK;
 
-    for (const auto& config : kM7TaskConfigs) {
+    for (const auto& config : kM4TaskConfigs) {
         BaseType_t ret = xTaskCreate(
             config.taskFunction,
             config.taskName,
@@ -64,12 +55,12 @@ TaskErr_t CreateM7Tasks() {
         );
 
         if (ret != pdPASS) {
-            printf("Failed to create M7 task: %s\r\n", config.taskName);
+            printf("Failed to create M4 task: %s\r\n", config.taskName);
             status = TaskErr_t::CREATE_FAILED;
             break;
         }
         
-        printf("Created M7 task: %s\r\n", config.taskName);
+        printf("Created M4 task: %s\r\n", config.taskName);
     }
 
     return status;

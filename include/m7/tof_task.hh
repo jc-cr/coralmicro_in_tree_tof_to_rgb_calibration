@@ -18,7 +18,7 @@ extern "C" {
 #include <stdio.h>
 #include <memory>
 
-#include "sensor_queues.hh"
+#include "m7/m7_queues.hh"
 
 namespace coralmicro {
     // Task
@@ -33,7 +33,13 @@ namespace coralmicro {
     void print_sensor_error(const char* operation, uint8_t status);
     void print_results(VL53L8CX_ResultsData* results);
 
+
     // Constants
+    struct TofTaskQueues {
+        static constexpr QueueHandle_t* output_queue = &g_tof_queue_m7;
+    };
+
+
     static constexpr Gpio kLpnPin = Gpio::kPwm0;
     static constexpr I2c kI2c = I2c::kI2c1;
     

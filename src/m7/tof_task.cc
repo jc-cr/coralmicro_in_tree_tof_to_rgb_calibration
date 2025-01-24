@@ -1,5 +1,5 @@
 // tof_task.cc
-#include "tof_task.hh"
+#include "m7/tof_task.hh"
 
 namespace coralmicro {
 
@@ -188,14 +188,6 @@ namespace coralmicro {
         (void)parameters;
         uint8_t status;
         
-        // Add stack checking
-        #if ( configCHECK_FOR_STACK_OVERFLOW > 0 )
-        volatile StackType_t *highWaterMark;
-        highWaterMark = uxTaskGetStackHighWaterMark(nullptr);
-        printf("Initial stack high water mark: %u words\r\n", 
-            static_cast<unsigned>(highWaterMark));
-        #endif
-        
         printf("TOF task starting...\r\n");
         fflush(stdout);
         
@@ -242,10 +234,9 @@ namespace coralmicro {
             printf("Failed to allocate results structure\r\n");
             return;
         }
-        
-        // Main task loop with watchdog
-        TickType_t last_wake_time = xTaskGetTickCount();
-        const TickType_t frequency = pdMS_TO_TICKS(33);
+
+        // Tof data structure
+        TofData tof_data;
         
         while (true) {
             uint8_t isReady = 0;
@@ -256,7 +247,13 @@ namespace coralmicro {
             if (status == VL53L8CX_STATUS_OK && isReady) {
                 status = vl53l8cx_get_ranging_data(dev.get(), results.get());
                 if (status == VL53L8CX_STATUS_OK) {
-                    xQueueOverwrite(g_tof_queue, results.get());  // Always keep latest frame
+                    tof_data.tof_results = *results;
+                    tof_data.timestamp = xTaskGetTickCount();
+
+                    if (xQueueOverwrite(*TofTaskQueues::output_queue, &tof_data) != pdTRUE) {
+                        printf("Failed to send TOF data to queue\r\n");
+                    }
+
                 } else {
                     print_sensor_error("getting ranging data", status);
                 }
@@ -264,17 +261,8 @@ namespace coralmicro {
                 print_sensor_error("checking data ready", status);
             }
             
-            // Check stack usage periodically
-            #if ( configCHECK_FOR_STACK_OVERFLOW > 0 )
-            if ((xTaskGetTickCount() % pdMS_TO_TICKS(5000)) == 0) {
-                highWaterMark = uxTaskGetStackHighWaterMark(nullptr);
-                printf("Current stack high water mark: %u words\r\n", 
-                    static_cast<unsigned>(highWaterMark));
-            }
-            #endif
-            
-            // Use vTaskDelayUntil for consistent timing
-            vTaskDelayUntil(&last_wake_time, frequency);
+            // 15 Hz update rate
+            vTaskDelay(pdMS_TO_TICKS(66));
         }
     }
 } // namespace coralmicro
