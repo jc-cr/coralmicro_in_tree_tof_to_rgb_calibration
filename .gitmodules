@@ -1,9 +1,6 @@
 [submodule "libs/coralmicro_VL53L8CX_ULD_driver"]
 	path = libs/coralmicro_VL53L8CX_ULD_driver
 	url = git@github.com:jc-cr/coralmicro_VL53L8CX_ULD_driver.git
-[submodule "freertos_task_config_generator"]
-	path = freertos_task_config_generator
-	url = git@github.com:jc-cr/freertos_task_config_generator.git
 [submodule "libs/msgpack-mcu"]
 	path = libs/msgpack-mcu
 	url = git@github.com:jc-cr/msgpack-mcu.git
