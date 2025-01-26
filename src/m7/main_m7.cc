@@ -1,20 +1,23 @@
-
+// main_m7.cc
 #include "third_party/freertos_kernel/include/FreeRTOS.h"
 #include "third_party/freertos_kernel/include/task.h"
 
+// Starting M4 core 
+#include "libs/base/ipc_m7.h"
+#include "libs/base/mutex.h"
+
+#include "startup_banner.hh"
 
 #include "m7/task_config_m7.hh"
 #include "m7/m7_queues.hh"
 
-#include "logo.hh"
 
 
 namespace coralmicro {
 namespace {
 
-const char* PROJECT_NAME = "CoralMicro In-Tree TOF to RGB Calibration";
-
 void setup_tasks() {
+    MulticoreMutexLock lock(0);
     printf("Starting M7 task creation...\r\n");
 
     // Init queues
@@ -33,16 +36,27 @@ void setup_tasks() {
     }
 }
 
+void start_m4() {
+    // Start M4 core
+    coralmicro::IpcM7::GetSingleton()->StartM4();
+    CHECK(coralmicro::IpcM7::GetSingleton()->M4IsAlive(500));
+
+    MulticoreMutexLock lock(0);
+    printf("M4 core started successfully\r\n");
+}
+
 [[noreturn]] void main_m7() {
     // Print startup banner
-    printf("\n%s\r\n", PROJECT_NAME);
-    printf("Developed by JC \r\n");
-    printf("%s\r\n\n", PROJECT_LOGO);
+    print_startup_banner();
+
+    // Start M4 core
+    start_m4();
+
+    // Now any prints need mutex
 
     // Initialize M7 tasks
     setup_tasks();
 
-    printf("Entering M7 main loop\r\n");
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }

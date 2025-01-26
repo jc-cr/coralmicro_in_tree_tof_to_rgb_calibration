@@ -6,13 +6,13 @@
 #include "third_party/freertos_kernel/include/FreeRTOS.h"
 #include "third_party/freertos_kernel/include/task.h"
 
+// Need below lib for I2C5Handle()
+#include "libs/base/main_freertos_m4.h"
+
 #include "m4/m4_queues.hh"
 
 namespace coralmicro{
 
-    struct CameraTaskQueues{
-        static constexpr QueueHandle_t* output_queue = &g_camera_queue_m4;
-    };
 
     struct CameraConfig{
         static constexpr uint32_t kWidth = 324;

@@ -6,9 +6,11 @@ namespace coralmicro {
     void camera_task(void* parameters) {
         (void)parameters;
 
+
         printf("Camera task starting...\r\n");
 
         // Initialize camera
+        CameraTask::GetSingleton()->Init(I2C5Handle()); // Specific to M4 core
         CameraTask::GetSingleton()->SetPower(true);
         CameraTask::GetSingleton()->Enable(CameraMode::kStreaming);
 
@@ -17,6 +19,8 @@ namespace coralmicro {
         camera_data.width = CameraConfig::kWidth;
         camera_data.height = CameraConfig::kHeight;
         camera_data.format = CameraConfig::kFormat;
+
+        printf("Camera task running...\r\n");
 
         while (true) {
             // Create new camera data instance
@@ -39,7 +43,7 @@ namespace coralmicro {
 
             if (CameraTask::GetSingleton()->GetFrame({fmt})) {
                 // Now safe to send to queue
-                if (xQueueOverwrite(*CameraTaskQueues::output_queue, &camera_data) != pdTRUE) {
+                if (xQueueOverwrite(g_camera_queue_m4, &camera_data) != pdTRUE) {
                     printf("Failed to send camera data to queue\r\n");
                 }
             } else {

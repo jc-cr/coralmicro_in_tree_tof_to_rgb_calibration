@@ -50,7 +50,7 @@ namespace coralmicro {
         for(uint8_t i = 0; i < kResolution; i++) {
             if(results->nb_target_detected[i] > 0 && 
             results->target_status[i] == 5) {
-                printf("Zone %2d: %4dmm (Signal: %4d)\r\n", 
+                printf("Zone %2d: %4dmm (Signal: %4ld)\r\n",
                     i, 
                     results->distance_mm[i],
                     results->signal_per_spad[i]);

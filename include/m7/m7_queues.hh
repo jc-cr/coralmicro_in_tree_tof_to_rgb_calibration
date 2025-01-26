@@ -9,15 +9,6 @@
 // Camera
 #include "libs/camera/camera.h"
 
-//.Inference
-#include "libs/tensorflow/utils.h"
-#include "third_party/tflite-micro/tensorflow/lite/micro/micro_error_reporter.h"
-#include "third_party/tflite-micro/tensorflow/lite/micro/micro_interpreter.h"
-#include "third_party/tflite-micro/tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "third_party/tflite-micro/tensorflow/lite/schema/schema_generated.h"
-#include "libs/tensorflow/detection.h"
-
-
 // TOF
 extern "C" {
 #include "vl53l8cx_api.h"

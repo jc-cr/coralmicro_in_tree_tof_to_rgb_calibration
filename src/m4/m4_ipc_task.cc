@@ -5,20 +5,21 @@ namespace coralmicro {
     void m4_ipc_task(void* parameters) {
         (void)parameters;
         
-        printf("M4 IPC task starting...\r\n");
+        printf("M4 IPC task starting... \r\n");
 
-        // Init data structures
-        CameraData latest_camera_data;
-        
         while (true) {
-            tx_data(latest_camera_data);
+            tx_data();
+
             vTaskDelay(pdMS_TO_TICKS(10));
         }
     }
 
-    void tx_data(CameraData camera_data) {
+    void tx_data() {
         // Send pending IPC messages
-        if (xQueuePeek(M4IpcTaskQueues::camera_queue(), &camera_data, 0) == pdTRUE) {
+        // Init data structures
+        CameraData camera_data;
+
+        if (xQueuePeek(g_camera_queue_m4, &camera_data, 0) == pdTRUE) {
             IpcMessage camera_data_msg{};
             camera_data_msg.type = IpcMessageType::kApp;
             auto* app_msg = reinterpret_cast<AppMessage*>(&camera_data_msg.message.data);
