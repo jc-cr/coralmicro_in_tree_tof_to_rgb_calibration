@@ -3,10 +3,20 @@
 
 namespace coralmicro {
 
+    static void print_start_message() {
+        MulticoreMutexLock lock(0);
+        printf("M7 RPC task starting...\r\n");
+    }
+
+    static void print_stream_service_info(std::string usb_ip) {
+        MulticoreMutexLock lock(0);
+        printf("Starting Stream Service on: %s\r\n", usb_ip.c_str());
+    }
+
      void get_frame(struct jsonrpc_request* request) {
          CameraData camera_data;
          
-         if (xQueuePeek(*RpcTaskQueues::camera_queue, &camera_data, 0) != pdTRUE) {
+         if (xQueuePeek(g_ipc_camera_queue_m7, &camera_data, 0) != pdTRUE) {
              jsonrpc_return_error(request, -1, "No camera data available", nullptr);
              return;
          }
@@ -25,7 +35,7 @@ namespace coralmicro {
          VL53L8CX_ResultsData results;
          
          // Try to get latest TOF frame without waiting
-         if (xQueuePeek(*RpcTaskQueues::tof_queue, &results, 0) != pdTRUE) {
+         if (xQueuePeek(g_tof_queue_m7, &results, 0) != pdTRUE) {
              jsonrpc_return_error(request, -1, "No TOF data available", nullptr);
              return;
          }
@@ -51,17 +61,19 @@ namespace coralmicro {
          );
      }
 
+
     void rpc_task(void* parameters) {
         (void)parameters;
-        
-        printf("RPC task starting...\r\n");
+
+        print_start_message();
         
         std::string usb_ip;
         if (!GetUsbIpAddress(&usb_ip)) {
             printf("Failed to get USB IP Address\r\n");
             vTaskSuspend(nullptr);
         }
-        printf("Starting Stream Service on: %s\r\n", usb_ip.c_str());
+
+        print_stream_service_info(usb_ip);
 
         jsonrpc_init(nullptr, nullptr);
         jsonrpc_export("get_image_from_camera", get_frame);

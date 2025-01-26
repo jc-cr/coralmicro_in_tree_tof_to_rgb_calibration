@@ -5,7 +5,8 @@
 #include <string.h>
 
 // Task implementations
-
+#include "m7/m7_ipc_task.hh"
+#include "m7/tof_task.hh"
 
 namespace coralmicro {
 namespace {
@@ -20,7 +21,22 @@ struct TaskConfig {
 };
 
 constexpr TaskConfig kM7TaskConfigs[] = {
-
+    {
+        m7_ipc_task,
+        "M7_IPC_Task",
+        STACK_SIZE_LARGE,
+        0,
+        TASK_PRIORITY_MEDIUM,
+        nullptr
+    },
+    {
+        tof_task,
+        "TOF_Task",
+        STACK_SIZE_LARGE,
+        0,
+        TASK_PRIORITY_MEDIUM,
+        nullptr
+    }
 };
 
 } // namespace

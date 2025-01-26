@@ -11,7 +11,9 @@
 #include "ipc_message.hh"
 
 namespace coralmicro{
+
     void m7_ipc_task(void* parameters);
     void rx_data(const uint8_t data[kIpcMessageBufferDataSize]);
+
 
 }

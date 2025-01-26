@@ -8,8 +8,9 @@
 #include "m4/m4_queues.hh"
 #include "ipc_message.hh"
 
+#include "libs/base/mutex.h"
+
 namespace coralmicro {
     void m4_ipc_task(void* parameters);
     void tx_data();
-
 }

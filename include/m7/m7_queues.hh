@@ -15,6 +15,9 @@ extern "C" {
 }
 
 
+#include "ipc_message.hh"
+
+
 namespace coralmicro {
 
     // Data structures
@@ -29,7 +32,21 @@ namespace coralmicro {
         CameraData() : image_data(std::make_shared<std::vector<uint8_t>>()) {}
     };
 
+    struct CameraDataIPC {
+        uint32_t width;
+        uint32_t height;
+        CameraFormat format;
+        TickType_t timestamp;
+        uint32_t data_size;
+        uint8_t data[kIpcMessageBufferDataSize - sizeof(AppMessageType) - 
+                    sizeof(uint32_t) * 4 - sizeof(CameraFormat) - sizeof(TickType_t)];
+    } __attribute__((packed));
 
+    static_assert(sizeof(CameraDataIPC) <= kIpcMessageBufferDataSize - sizeof(AppMessageType),
+                "CameraDataIPC too large for IPC buffer");
+
+    inline std::function<void(const uint8_t data[kIpcMessageBufferDataSize])> g_ipc_task_handler;
+    
     struct TofData {
         VL53L8CX_ResultsData tof_results;
         TickType_t timestamp;

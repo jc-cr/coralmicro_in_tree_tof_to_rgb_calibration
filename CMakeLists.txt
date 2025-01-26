@@ -8,13 +8,13 @@ enable_language(ASM)
 # Define task source files for each core
 set(M4_TASK_SOURCES
     src/m4/camera_task.cc
-#    src/m4/m4_ipc_task.cc
+    src/m4/m4_ipc_task.cc
 )
 
 set(M7_TASK_SOURCES
-    # src/m7/m7_ipc_task.cc
-    # src/m7/tof_task.cc
-    # src/m7/rpc_task.cc
+    src/m7/m7_ipc_task.cc
+    src/m7/tof_task.cc
+#    src/m7/rpc_task.cc
 )
 
 # Define paths for task configuration

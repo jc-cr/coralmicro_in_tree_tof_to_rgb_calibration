@@ -15,5 +15,6 @@ namespace coralmicro {
         uint8_t data[kIpcMessageBufferDataSize - sizeof(AppMessageType)];
     } __attribute__((packed));
 
+
     static_assert(sizeof(AppMessage) <= kIpcMessageBufferDataSize);
 }
