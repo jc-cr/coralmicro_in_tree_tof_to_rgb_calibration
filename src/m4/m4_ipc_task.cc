@@ -30,28 +30,27 @@ namespace coralmicro {
             // Prepare IPC message
             IpcMessage camera_data_msg{};
             camera_data_msg.type = IpcMessageType::kApp;
-            auto* app_msg = reinterpret_cast<AppMessage*>(&camera_data_msg.message.data);
-            app_msg->type = AppMessageType::kCameraData;
             
-            // Fill in the camera data
-            auto* ipc_data = reinterpret_cast<CameraDataIPC*>(app_msg->data);
-            ipc_data->width = camera_data.width;
-            ipc_data->height = camera_data.height;
-            ipc_data->format = camera_data.format;
-            ipc_data->timestamp = camera_data.timestamp;
-            ipc_data->data_size = std::min(data_size, sizeof(ipc_data->data));
+            // Cast directly to our camera message structure
+            auto* cam_msg = reinterpret_cast<CameraDataMessage*>(&camera_data_msg.message.data);
+            cam_msg->type = AppMessageType::kCameraData;
+            cam_msg->width = camera_data.width;
+            cam_msg->height = camera_data.height;
+            cam_msg->format = camera_data.format;
+            cam_msg->timestamp = camera_data.timestamp;
+            cam_msg->data_size = std::min(data_size, sizeof(cam_msg->data));
             
             // Copy the actual image data
-            memcpy(ipc_data->data, 
+            memcpy(cam_msg->data, 
                 camera_data.image_data->data(),
-                ipc_data->data_size);
-                
+                cam_msg->data_size);
+                    
             // Send the message
             IpcM4::GetSingleton()->SendMessage(camera_data_msg);
-
+            
             if (!first_message_tx_flag) {
                 MulticoreMutexLock lock(0);
-                printf("M4 IPC: First message sent\r\n");
+                printf("M4 IPC: First message sent (data size: %u)\r\n", cam_msg->data_size);
                 first_message_tx_flag = true;
             }
         }

@@ -13,6 +13,7 @@
 
 namespace coralmicro {
     void rpc_task(void* parameters);
+    
     void get_frame(struct jsonrpc_request* request);
     void get_tof_grid(struct jsonrpc_request* request);
 }

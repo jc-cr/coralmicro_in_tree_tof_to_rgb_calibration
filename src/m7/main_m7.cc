@@ -10,8 +10,7 @@
 
 #include "m7/task_config_m7.hh"
 #include "m7/m7_queues.hh"
-
-
+#include "ipc_message.hh"
 
 
 namespace coralmicro {
@@ -20,15 +19,17 @@ namespace {
     void start_m4() {
         auto* ipc = IpcM7::GetSingleton();
         
-        // Register global message handler BEFORE starting M4
+        // Set up IPC handler first
+        g_ipc_task_handler = rx_data;  // Moved from M7 IPC task
+        
+        // Then register global message handler
         ipc->RegisterAppMessageHandler([](const uint8_t data[kIpcMessageBufferDataSize]) {
-            // This is the global handler - it will dispatch to the task handler
             if (g_ipc_task_handler) {
                 g_ipc_task_handler(data);
             }
         });
 
-        // Start M4 core
+        // Start M4 core only after everything is set up
         ipc->StartM4();
         CHECK(ipc->M4IsAlive(500));
 
@@ -39,16 +40,8 @@ namespace {
     void setup_tasks() {
         MulticoreMutexLock lock(0);
         printf("Starting M7 task creation...\r\n");
-
-        // Init queues
-        // BOOL return type
-        if (!InitQueues()) {
-            printf("Failed to initialize queues\r\n");
-            vTaskSuspend(nullptr);
-        }
         
-        // Task creation
-        // TaskErr_t return type
+        // Task creation - queues already initialized in start_m4()
         if (CreateM7Tasks() != TaskErr_t::OK)
         {
             printf("Failed to create M7 tasks\r\n");
@@ -56,15 +49,18 @@ namespace {
         }
     }
 
-
     [[noreturn]] void main_m7() {
         // Print startup banner
         print_startup_banner();
 
-        // Start M4 core
-        start_m4();
+        // Initialize queues first
+        if (!InitQueues()) {
+            printf("Failed to initialize queues\r\n");
+            vTaskSuspend(nullptr);
+        }
 
-        // Now any prints need mutex
+        // Start M4 core (and initialize queues)
+        start_m4();
 
         // Initialize M7 tasks
         setup_tasks();

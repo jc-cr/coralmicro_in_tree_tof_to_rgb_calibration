@@ -69,6 +69,7 @@ namespace coralmicro {
         
         std::string usb_ip;
         if (!GetUsbIpAddress(&usb_ip)) {
+            MulticoreMutexLock lock(0);
             printf("Failed to get USB IP Address\r\n");
             vTaskSuspend(nullptr);
         }
@@ -78,6 +79,7 @@ namespace coralmicro {
         jsonrpc_init(nullptr, nullptr);
         jsonrpc_export("get_image_from_camera", get_frame);
         jsonrpc_export("get_tof_grid", get_tof_grid);  // Register TOF endpoint
+
         UseHttpServer(new JsonRpcHttpServer);
 
         vTaskSuspend(nullptr);

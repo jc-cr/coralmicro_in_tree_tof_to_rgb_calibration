@@ -32,7 +32,7 @@ constexpr TaskConfig kM4TaskConfigs[] = {
     {
         m4_ipc_task,
         "M4_IPC_Task",
-        STACK_SIZE_LARGE,
+        STACK_SIZE_MEDIUM,
         0,
         TASK_PRIORITY_MEDIUM,
         nullptr

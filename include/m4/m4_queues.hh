@@ -8,6 +8,7 @@
 #include "third_party/freertos_kernel/include/FreeRTOS.h"
 #include "third_party/freertos_kernel/include/queue.h"
 #include "libs/camera/camera.h"
+
 #include "ipc_message.hh"
 
 
@@ -24,20 +25,6 @@ namespace coralmicro {
         CameraData() : image_data(std::make_shared<std::vector<uint8_t>>()) {}
     };
 
-    struct CameraDataIPC {
-        uint32_t width;
-        uint32_t height;
-        CameraFormat format;
-        TickType_t timestamp;
-        uint32_t data_size;
-        uint8_t data[kIpcMessageBufferDataSize - sizeof(AppMessageType) - 
-                    sizeof(uint32_t) * 4 - sizeof(CameraFormat) - sizeof(TickType_t)];
-    } __attribute__((packed));
-
-    static_assert(sizeof(CameraDataIPC) <= kIpcMessageBufferDataSize - sizeof(AppMessageType),
-                "CameraDataIPC too large for IPC buffer");
-
-    // State event defiend in system_state.hh
 
     // Queue handles
     inline QueueHandle_t g_camera_queue_m4;      // Latest camera frame

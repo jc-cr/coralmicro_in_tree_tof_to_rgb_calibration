@@ -14,7 +14,7 @@ set(M4_TASK_SOURCES
 set(M7_TASK_SOURCES
     src/m7/m7_ipc_task.cc
     src/m7/tof_task.cc
-#    src/m7/rpc_task.cc
+    src/m7/rpc_task.cc
 )
 
 # Define paths for task configuration
