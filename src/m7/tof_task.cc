@@ -114,7 +114,6 @@ namespace coralmicro {
             operation, 
             status, 
             get_error_string(status));
-        fflush(stdout);
     }
 
     bool init_sensor(VL53L8CX_Configuration* dev) {

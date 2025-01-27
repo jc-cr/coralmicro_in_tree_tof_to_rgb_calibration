@@ -20,11 +20,9 @@ namespace coralmicro {
         uint32_t height;
         CameraFormat format;
         TickType_t timestamp;
-        std::shared_ptr<std::vector<uint8_t>> image_data;
-
-        CameraData() : image_data(std::make_shared<std::vector<uint8_t>>()) {}
+        uint32_t data_size;
+        uint8_t data[324 * 324 * 3];  // Max size for RGB 324x324
     };
-
 
     // Queue handles
     inline QueueHandle_t g_camera_queue_m4;      // Latest camera frame

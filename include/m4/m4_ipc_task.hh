@@ -9,6 +9,7 @@
 #include "ipc_message.hh"
 
 #include "libs/base/mutex.h"
+#include <algorithm>
 
 namespace coralmicro {
     void m4_ipc_task(void* parameters);

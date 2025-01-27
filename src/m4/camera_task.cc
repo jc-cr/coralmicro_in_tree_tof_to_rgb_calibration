@@ -3,11 +3,20 @@
 
 namespace coralmicro {
 
+    void print_start_message() {
+        MulticoreMutexLock lock(0);
+        printf("Camera task starting...\r\n");
+    }
+
+    void print_ok_message() {
+        MulticoreMutexLock lock(0);
+        printf("Camera task started successfully\r\n");
+    }
+
     void camera_task(void* parameters) {
         (void)parameters;
 
-
-        printf("Camera task starting...\r\n");
+        print_start_message();
 
         // Initialize camera
         CameraTask::GetSingleton()->Init(I2C5Handle()); // Specific to M4 core
@@ -20,15 +29,12 @@ namespace coralmicro {
         camera_data.height = CameraConfig::kHeight;
         camera_data.format = CameraConfig::kFormat;
 
-        printf("Camera task running...\r\n");
+        print_ok_message();
 
         while (true) {
-            // Create new camera data instance
             camera_data.timestamp = xTaskGetTickCount();
-             
-            camera_data.image_data->resize(
-                camera_data.width * camera_data.height * 
-                CameraFormatBpp(camera_data.format));
+            camera_data.data_size = camera_data.width * camera_data.height * 
+                CameraFormatBpp(camera_data.format);
 
             CameraFrameFormat fmt{
                 camera_data.format,
@@ -37,13 +43,13 @@ namespace coralmicro {
                 static_cast<int>(camera_data.width),
                 static_cast<int>(camera_data.height),
                 false,
-                camera_data.image_data->data(),
+                camera_data.data,  // Direct use of the buffer
                 CameraConfig::auto_white_balance
             };
 
             if (CameraTask::GetSingleton()->GetFrame({fmt})) {
-                // Now safe to send to queue
                 if (xQueueOverwrite(g_camera_queue_m4, &camera_data) != pdTRUE) {
+                    MulticoreMutexLock lock(0);
                     printf("Failed to send camera data to queue\r\n");
                 }
             } else {

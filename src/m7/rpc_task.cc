@@ -13,22 +13,22 @@ namespace coralmicro {
         printf("Starting Stream Service on: %s\r\n", usb_ip.c_str());
     }
 
-     void get_frame(struct jsonrpc_request* request) {
-         CameraData camera_data;
-         
-         if (xQueuePeek(g_ipc_camera_queue_m7, &camera_data, 0) != pdTRUE) {
-             jsonrpc_return_error(request, -1, "No camera data available", nullptr);
-             return;
-         }
- 
-         jsonrpc_return_success(
-             request,
-             "{%Q: %d, %Q: %d, %Q: %V}",
-             "width", camera_data.width,
-             "height", camera_data.height,
-             "base64_data", camera_data.image_data->size(), camera_data.image_data->data()
-         );
-     }
+    void get_frame(struct jsonrpc_request* request) {
+        CameraData camera_data;
+        
+        if (xQueuePeek(g_ipc_camera_queue_m7, &camera_data, 0) != pdTRUE) {
+            jsonrpc_return_error(request, -1, "No camera data available", nullptr);
+            return;
+        }
+
+        jsonrpc_return_success(
+            request,
+            "{%Q: %d, %Q: %d, %Q: %V}",
+            "width", camera_data.width,
+            "height", camera_data.height,
+            "base64_data", camera_data.data_size, camera_data.data
+        );
+    }
  
      void get_tof_grid(struct jsonrpc_request* request) {
 
@@ -62,10 +62,14 @@ namespace coralmicro {
      }
 
 
+    // rpc_task.cc
     void rpc_task(void* parameters) {
         (void)parameters;
 
         print_start_message();
+        
+        // Wait a bit for other tasks to initialize
+        vTaskDelay(pdMS_TO_TICKS(1000));
         
         std::string usb_ip;
         if (!GetUsbIpAddress(&usb_ip)) {
@@ -76,12 +80,24 @@ namespace coralmicro {
 
         print_stream_service_info(usb_ip);
 
+        // Initialize JSON-RPC
         jsonrpc_init(nullptr, nullptr);
         jsonrpc_export("get_image_from_camera", get_frame);
-        jsonrpc_export("get_tof_grid", get_tof_grid);  // Register TOF endpoint
+        jsonrpc_export("get_tof_grid", get_tof_grid);
 
-        UseHttpServer(new JsonRpcHttpServer);
+        // Create HTTP server instance
+        auto* server = new JsonRpcHttpServer();
+        if (!server) {
+            MulticoreMutexLock lock(0);
+            printf("Failed to create RPC HTTP server\r\n");
+            vTaskSuspend(nullptr);
+        }
 
-        vTaskSuspend(nullptr);
+        UseHttpServer(server);
+
+        // Keep task alive and monitor server status
+        while (true) {
+            vTaskDelay(pdMS_TO_TICKS(1000));  // Check every second
+        }
     }
 }

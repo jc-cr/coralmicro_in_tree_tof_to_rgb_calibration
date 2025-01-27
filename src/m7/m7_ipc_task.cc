@@ -30,12 +30,10 @@ namespace coralmicro {
             camera_data.height = cam_msg->height;
             camera_data.format = cam_msg->format;
             camera_data.timestamp = cam_msg->timestamp;
+            camera_data.data_size = cam_msg->data_size;
             
-            // Copy image data to shared_ptr vector
-            camera_data.image_data->resize(cam_msg->data_size);
-            memcpy(camera_data.image_data->data(),
-                cam_msg->data,
-                cam_msg->data_size);
+            // Direct copy of image data
+            memcpy(camera_data.data, cam_msg->data, cam_msg->data_size);
             
             // Place in queue
             xQueueOverwrite(g_ipc_camera_queue_m7, &camera_data);
@@ -45,10 +43,6 @@ namespace coralmicro {
                 printf("M7 IPC: First message received (data size: %u)\r\n", cam_msg->data_size);
                 first_message_rx_flag = true;
             }
-        } else {
-            MulticoreMutexLock lock(0);
-            printf("M7 IPC: Unknown message type received: %d\r\n", 
-                static_cast<int>(cam_msg->type));
         }
     }
 

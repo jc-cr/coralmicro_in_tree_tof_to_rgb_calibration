@@ -10,6 +10,7 @@
 #include "libs/base/main_freertos_m4.h"
 
 #include "m4/m4_queues.hh"
+#include "libs/base/mutex.h"
 
 namespace coralmicro{
 

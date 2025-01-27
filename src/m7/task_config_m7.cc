@@ -7,7 +7,6 @@
 // Task implementations
 #include "m7/m7_ipc_task.hh"
 #include "m7/rpc_task.hh"
-#include "m7/tof_task.hh"
 
 namespace coralmicro {
 namespace {
@@ -31,19 +30,11 @@ constexpr TaskConfig kM7TaskConfigs[] = {
         nullptr
     },
     {
-        tof_task,
-        "TOF_Task",
-        STACK_SIZE_MEDIUM,
-        0,
-        TASK_PRIORITY_MEDIUM,
-        nullptr
-    },
-    {
         rpc_task,
         "RPC_Task",
-        STACK_SIZE_LARGE,
+        STACK_SIZE_LARGE * 8,
         0,
-        TASK_PRIORITY_MEDIUM,
+        TASK_PRIORITY_HIGH,
         nullptr
     }
 };
