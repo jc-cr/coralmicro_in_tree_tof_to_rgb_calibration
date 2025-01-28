@@ -12,8 +12,12 @@
 #include "m4/m4_queues.hh"
 #include "libs/base/mutex.h"
 
-namespace coralmicro{
+#include "libs/base/ipc_m4.h"
 
+#include "ipc_message.hh"
+#include "shared_memory.hh"
+
+namespace coralmicro{
 
     struct CameraConfig{
         static constexpr uint32_t kWidth = 324;

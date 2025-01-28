@@ -3,6 +3,8 @@
 
 namespace coralmicro {
 
+    bool first_frame_flag = false;
+
     void print_start_message() {
         MulticoreMutexLock lock(0);
         printf("Camera task starting...\r\n");
@@ -15,48 +17,62 @@ namespace coralmicro {
 
     void camera_task(void* parameters) {
         (void)parameters;
-
+        
         print_start_message();
-
         // Initialize camera
-        CameraTask::GetSingleton()->Init(I2C5Handle()); // Specific to M4 core
+        CameraTask::GetSingleton()->Init(I2C5Handle());
         CameraTask::GetSingleton()->SetPower(true);
         CameraTask::GetSingleton()->Enable(CameraMode::kStreaming);
-
-        // Main task loop
-        CameraData camera_data;
-        camera_data.width = CameraConfig::kWidth;
-        camera_data.height = CameraConfig::kHeight;
-        camera_data.format = CameraConfig::kFormat;
-
         print_ok_message();
-
+        auto& shared = SharedMemory::GetInstance();
+        
         while (true) {
-            camera_data.timestamp = xTaskGetTickCount();
-            camera_data.data_size = camera_data.width * camera_data.height * 
-                CameraFormatBpp(camera_data.format);
-
             CameraFrameFormat fmt{
-                camera_data.format,
+                CameraConfig::kFormat,
                 CameraConfig::filter,
                 CameraConfig::rotation,
-                static_cast<int>(camera_data.width),
-                static_cast<int>(camera_data.height),
+                CameraConfig::kWidth,
+                CameraConfig::kHeight,
                 false,
-                camera_data.data,  // Direct use of the buffer
+                shared.capture_frame.data,  // Always write to capture buffer
                 CameraConfig::auto_white_balance
             };
 
             if (CameraTask::GetSingleton()->GetFrame({fmt})) {
-                if (xQueueOverwrite(g_camera_queue_m4, &camera_data) != pdTRUE) {
-                    MulticoreMutexLock lock(0);
-                    printf("Failed to send camera data to queue\r\n");
-                }
-            } else {
-                printf("Camera frame capture failed\r\n");
-            }
+                // Update metadata
+                shared.capture_frame.width = CameraConfig::kWidth;
+                shared.capture_frame.height = CameraConfig::kHeight;
+                shared.capture_frame.format = CameraConfig::kFormat;
+                shared.capture_frame.timestamp = xTaskGetTickCount();
+                shared.capture_frame.data_size = CameraConfig::kWidth * 
+                    CameraConfig::kHeight * CameraFormatBpp(CameraConfig::kFormat);
 
-            vTaskDelay(pdMS_TO_TICKS(33));  // ~30 FPS
+                // Only swap if M7 is ready for new frame
+                MulticoreMutexLock lock(kSharedMemoryMutex);
+                if (!shared.new_frame_ready) {
+                    // Set flag and swap before notification
+                    shared.new_frame_ready = true;
+                    std::swap(shared.capture_frame, shared.process_frame);
+
+                    // Send notification
+                    IpcMessage msg{};
+                    msg.type = IpcMessageType::kApp;
+                    auto* notify = reinterpret_cast<NotificationMessage*>(&msg.message.data);
+                    notify->type = AppMessageType::kNewFrame;
+                    IpcM4::GetSingleton()->SendMessage(msg);
+
+                    if (!first_frame_flag) {
+                        MulticoreMutexLock print_lock(0);
+                        printf("Camera: First frame captured and sent to M7 (size: %u)\r\n", 
+                            shared.capture_frame.data_size);
+                        first_frame_flag = true;
+                    }
+                }
+            }
+            
+            vTaskDelay(pdMS_TO_TICKS(33));  // ~30fps
         }
     }
+
+
 }

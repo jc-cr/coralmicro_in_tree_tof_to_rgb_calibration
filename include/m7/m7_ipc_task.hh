@@ -9,6 +9,7 @@
 
 #include "m7/m7_queues.hh"
 #include "ipc_message.hh"
+#include "shared_memory.hh"
 
 namespace coralmicro{
 
