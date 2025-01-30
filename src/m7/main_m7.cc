@@ -3,42 +3,18 @@
 #include "third_party/freertos_kernel/include/task.h"
 
 // Starting M4 core 
-#include "libs/base/ipc_m7.h"
-#include "libs/base/mutex.h"
-
 #include "startup_banner.hh"
 
 #include "m7/task_config_m7.hh"
 #include "m7/m7_queues.hh"
-#include "ipc_message.hh"
 
+#include <cstdio>
+#include "libs/base/led.h"
 
 namespace coralmicro {
 namespace {
 
-    void start_m4() {
-        auto* ipc = IpcM7::GetSingleton();
-        
-        // Set up IPC handler first
-        g_ipc_task_handler = rx_data;  // Moved from M7 IPC task
-        
-        // Then register global message handler
-        ipc->RegisterAppMessageHandler([](const uint8_t data[kIpcMessageBufferDataSize]) {
-            if (g_ipc_task_handler) {
-                g_ipc_task_handler(data);
-            }
-        });
-
-        // Start M4 core only after everything is set up
-        ipc->StartM4();
-        CHECK(ipc->M4IsAlive(500));
-
-        MulticoreMutexLock lock(0);
-        printf("M4 core started successfully\r\n");
-    }
-
     void setup_tasks() {
-        MulticoreMutexLock lock(0);
         printf("Starting M7 task creation...\r\n");
         
         // Task creation - queues already initialized in start_m4()
@@ -59,11 +35,12 @@ namespace {
             vTaskSuspend(nullptr);
         }
 
-        // Start M4 core (and initialize queues)
-        start_m4();
-
         // Initialize M7 tasks
         setup_tasks();
+
+        // Set status LED
+        LedSet(Led::kStatus, true);
+
 
         while (true) {
             vTaskDelay(pdMS_TO_TICKS(100));

@@ -4,9 +4,6 @@
 namespace coralmicro {
 
     void print_results(VL53L8CX_ResultsData* results) {
-        
-        MulticoreMutexLock lock(0);
-
         // Print header with temperature
         printf("\r\n=== VL53L8CX Sensor Reading (Temp: %d°C) ===\r\n\r\n", 
             results->silicon_temp_degc);
@@ -60,13 +57,10 @@ namespace coralmicro {
             }
         }
         printf("\r\n");  // Extra line for spacing between updates
-        
-        fflush(stdout);
     }
 
     bool init_gpio() {
 
-        MulticoreMutexLock lock(0);
         printf("GPIO Power-on sequence starting...\r\n");
         
         // Configure LPn pin
@@ -109,7 +103,6 @@ namespace coralmicro {
 
     void print_sensor_error(const char* operation, uint8_t status) {
 
-        MulticoreMutexLock lock(0);
         printf("Error during %s: [%d] %s\r\n", 
             operation, 
             status, 
@@ -118,7 +111,6 @@ namespace coralmicro {
 
     bool init_sensor(VL53L8CX_Configuration* dev) {
 
-        MulticoreMutexLock lock(0);
         uint8_t status;
         uint8_t isAlive = 0;
         
@@ -193,12 +185,10 @@ namespace coralmicro {
     }
 
     void print_task_starting() {
-        MulticoreMutexLock lock(0);
         printf("TOF task starting...\r\n");
     }
 
     void print_task_ok() {
-        MulticoreMutexLock lock(0);
         printf("TOF task started successfully\r\n");
     }
 
@@ -211,7 +201,6 @@ namespace coralmicro {
         
         if (!init_gpio()) {
 
-            MulticoreMutexLock lock(0);
             printf("GPIO initialization failed\r\n");
             vTaskSuspend(nullptr);
         }
@@ -220,7 +209,6 @@ namespace coralmicro {
         VL53L8CX_Platform platform = {};
         if (!vl53l8cx::PlatformInit(&platform, kI2c, kAddress)) {
 
-            MulticoreMutexLock lock(0);
             printf("Platform initialization failed\r\n");
             vTaskSuspend(nullptr);
         }
@@ -228,7 +216,6 @@ namespace coralmicro {
         // Create and initialize device instance
         auto dev = std::make_unique<VL53L8CX_Configuration>();
         if (!dev) {
-            MulticoreMutexLock lock(0);
             printf("Failed to allocate device configuration\r\n");
             vTaskSuspend(nullptr);
         }
@@ -238,7 +225,6 @@ namespace coralmicro {
         
         if (!init_sensor(dev.get())) {
 
-            MulticoreMutexLock lock(0);
             printf("Sensor initialization failed - exiting task\r\n");
             vTaskSuspend(nullptr);
         }
@@ -246,7 +232,6 @@ namespace coralmicro {
         // Start ranging
         status = vl53l8cx_start_ranging(dev.get());
         if (status != VL53L8CX_STATUS_OK) {
-            MulticoreMutexLock lock(0);
             print_sensor_error("starting ranging", status);
             vTaskSuspend(nullptr);
         }
@@ -255,7 +240,6 @@ namespace coralmicro {
         // Allocate results structure on heap
         auto results = std::make_unique<VL53L8CX_ResultsData>();
         if (!results) {
-            MulticoreMutexLock lock(0);
             printf("Failed to allocate results structure\r\n");
             vTaskSuspend(nullptr);
         }

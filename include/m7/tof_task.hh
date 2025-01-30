@@ -7,13 +7,10 @@
 #include "libs/base/i2c.h"
 #include "libs/base/gpio.h"
 
-#include "libs/base/mutex.h"
-
 // VL53L8CX implementation
 extern "C" {
 #include "vl53l8cx_api.h"
 }
-
 #include "platform.hpp"
 
 // C++ standard library

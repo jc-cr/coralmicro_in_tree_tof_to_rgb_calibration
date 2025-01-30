@@ -5,11 +5,8 @@
 #include "libs/base/utils.h"
 #include "third_party/mjson/src/mjson.h"
 
-#include "libs/base/led.h"
-
 #include "m7/m7_queues.hh"
-#include "libs/base/mutex.h"
-#include "shared_memory.hh"
+
 
 namespace coralmicro {
     void rpc_task(void* parameters);

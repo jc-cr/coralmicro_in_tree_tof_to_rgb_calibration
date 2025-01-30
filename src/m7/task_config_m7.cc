@@ -5,7 +5,7 @@
 #include <string.h>
 
 // Task implementations
-#include "m7/m7_ipc_task.hh"
+#include "m7/camera_task.hh"
 #include "m7/rpc_task.hh"
 
 namespace coralmicro {
@@ -22,8 +22,8 @@ struct TaskConfig {
 
 constexpr TaskConfig kM7TaskConfigs[] = {
     {
-        m7_ipc_task,
-        "M7_IPC_Task",
+        camera_task,
+        "Camera_Task",
         STACK_SIZE_MEDIUM,
         0,
         TASK_PRIORITY_MEDIUM,
@@ -32,7 +32,7 @@ constexpr TaskConfig kM7TaskConfigs[] = {
     {
         rpc_task,
         "RPC_Task",
-        STACK_SIZE_LARGE * 8,
+        STACK_SIZE_LARGE,
         0,
         TASK_PRIORITY_HIGH,
         nullptr
