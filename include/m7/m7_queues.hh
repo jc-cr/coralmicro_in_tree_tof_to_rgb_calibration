@@ -23,11 +23,8 @@ namespace coralmicro {
         uint32_t height;
         CameraFormat format;
         TickType_t timestamp;
-        
-        // Place image buffer in non-cached memory for DMA
-        alignas(32) std::vector<uint8_t, FreeRTOS::NoCacheAllocator<uint8_t>> image_data;
+        alignas(32) std::vector<uint8_t> image_data;  // Just align the vector
     };
-
 
     struct TofData {
         VL53L8CX_ResultsData tof_results;

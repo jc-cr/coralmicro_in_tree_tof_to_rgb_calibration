@@ -35,6 +35,7 @@ void camera_task(void* parameters) {
     // Pre-allocate buffer
     const size_t buffer_size = camera_data.width * camera_data.height * 
                               CameraFormatBpp(camera_data.format);
+    camera_data.image_data.reserve(buffer_size);
     camera_data.image_data.resize(buffer_size);
 
     // Create frame format structure
@@ -49,17 +50,21 @@ void camera_task(void* parameters) {
         CameraConfig::auto_white_balance
     };
 
+ // Track timing for consistent frame rate
+    TickType_t last_wake_time = xTaskGetTickCount();
+    const TickType_t capture_period = pdMS_TO_TICKS(33);  // ~30 fps
+
     while (true) {
         if (CameraTask::GetSingleton()->GetFrame({fmt})) {
             camera_data.timestamp = xTaskGetTickCount();
             
-            // Use xQueueOverwrite to update the queue
             if (xQueueOverwrite(g_camera_queue_m7, &camera_data) != pdTRUE) {
                 printf("Failed to send camera data to queue\r\n");
             }
         }
         
-        vTaskDelay(pdMS_TO_TICKS(5));  // Small delay to prevent task starvation
+        // Use vTaskDelayUntil for consistent frame timing
+        vTaskDelayUntil(&last_wake_time, capture_period);
     }
 }
 
