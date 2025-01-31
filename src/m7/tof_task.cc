@@ -244,11 +244,12 @@ namespace coralmicro {
             vTaskSuspend(nullptr);
         }
 
-        // Tof data structure
-        TofData tof_data;
-
         print_task_ok();
         
+        // Main loop with controlled timing
+        TickType_t last_wake_time = xTaskGetTickCount();
+        const TickType_t frequency = pdMS_TO_TICKS(66);  // ~15Hz
+
         while (true) {
             uint8_t isReady = 0;
             
@@ -257,11 +258,9 @@ namespace coralmicro {
             
             if (status == VL53L8CX_STATUS_OK && isReady) {
                 status = vl53l8cx_get_ranging_data(dev.get(), results.get());
-                if (status == VL53L8CX_STATUS_OK) {
-                    tof_data.tof_results = *results;
-                    tof_data.timestamp = xTaskGetTickCount();
 
-                    if (xQueueOverwrite(g_tof_queue_m7, &tof_data) != pdTRUE) {
+                if (status == VL53L8CX_STATUS_OK) {
+                    if (xQueueOverwrite(g_tof_queue_m7, results.get()) != pdTRUE) {
                         printf("Failed to send TOF data to queue\r\n");
                     }
 
@@ -272,8 +271,9 @@ namespace coralmicro {
                 print_sensor_error("checking data ready", status);
             }
             
-            // 15 Hz update rate
-            vTaskDelay(pdMS_TO_TICKS(66));
+ 
+        // Use vTaskDelayUntil for more precise timing
+        vTaskDelayUntil(&last_wake_time, frequency);
         }
     }
 } // namespace coralmicro

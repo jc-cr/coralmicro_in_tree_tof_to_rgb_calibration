@@ -25,41 +25,48 @@ void camera_task(void* parameters) {
     // Discard initial frames to allow auto-exposure calibration
     CameraTask::GetSingleton()->DiscardFrames(100);
 
-
-  // Initialize two camera data buffers
+    // Create two alternating buffers to ensure data consistency
+    std::shared_ptr<std::vector<uint8_t>> buffer1 = std::make_shared<std::vector<uint8_t>>();
+    std::shared_ptr<std::vector<uint8_t>> buffer2 = std::make_shared<std::vector<uint8_t>>();
+    
+    const size_t buffer_size = CameraConfig::kWidth * CameraConfig::kHeight * 
+                              CameraFormatBpp(CameraConfig::kFormat);
+    
+    buffer1->resize(buffer_size);
+    buffer2->resize(buffer_size);
+    
+    std::shared_ptr<std::vector<uint8_t>> current_buffer = buffer1;
+    
     CameraData camera_data;
     camera_data.width = CameraConfig::kWidth;
     camera_data.height = CameraConfig::kHeight;
     camera_data.format = CameraConfig::kFormat;
 
-    // Pre-allocate buffer
-    const size_t buffer_size = camera_data.width * camera_data.height * 
-                              CameraFormatBpp(camera_data.format);
-    camera_data.image_data.reserve(buffer_size);
-    camera_data.image_data.resize(buffer_size);
-
-    // Create frame format structure
-    CameraFrameFormat fmt{
-        camera_data.format,
-        CameraConfig::filter,
-        CameraConfig::rotation,
-        static_cast<int>(camera_data.width),
-        static_cast<int>(camera_data.height),
-        CameraConfig::preserve_ratio,
-        camera_data.image_data.data(),  // Direct access to vector data
-        CameraConfig::auto_white_balance
-    };
-
- // Track timing for consistent frame rate
+    // Track timing for consistent frame rate
     TickType_t last_wake_time = xTaskGetTickCount();
     const TickType_t capture_period = pdMS_TO_TICKS(33);  // ~30 fps
 
     while (true) {
+        // Setup frame format with current buffer
+        CameraFrameFormat fmt{
+            camera_data.format,
+            CameraConfig::filter,
+            CameraConfig::rotation,
+            static_cast<int>(camera_data.width),
+            static_cast<int>(camera_data.height),
+            CameraConfig::preserve_ratio,
+            current_buffer->data(),
+            CameraConfig::auto_white_balance
+        };
+
         if (CameraTask::GetSingleton()->GetFrame({fmt})) {
             camera_data.timestamp = xTaskGetTickCount();
+            camera_data.image_data = current_buffer;  // Assign current buffer
             
-            if (xQueueOverwrite(g_camera_queue_m7, &camera_data) != pdTRUE) {
-                printf("Failed to send camera data to queue\r\n");
+            // Send to queue
+            if (xQueueOverwrite(g_camera_queue_m7, &camera_data) == pdTRUE) {
+                // Switch buffers only after successful queue write
+                current_buffer = (current_buffer == buffer1) ? buffer2 : buffer1;
             }
         }
         

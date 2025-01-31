@@ -23,12 +23,9 @@ namespace coralmicro {
         uint32_t height;
         CameraFormat format;
         TickType_t timestamp;
-        alignas(32) std::vector<uint8_t> image_data;  // Just align the vector
-    };
+        std::shared_ptr<std::vector<uint8_t>> image_data;
 
-    struct TofData {
-        VL53L8CX_ResultsData tof_results;
-        TickType_t timestamp;
+        CameraData() : image_data(std::make_shared<std::vector<uint8_t>>()) {}
     };
 
     // Queue handles
@@ -38,7 +35,7 @@ namespace coralmicro {
 
     // Queue creation
     inline bool InitQueues() {
-        g_tof_queue_m7 = xQueueCreate(1, sizeof(TofData));
+        g_tof_queue_m7 = xQueueCreate(1, sizeof(VL53L8CX_ResultsData));
         g_camera_queue_m7 = xQueueCreate(1, sizeof(CameraData));
         
         return (g_tof_queue_m7 != nullptr && g_camera_queue_m7 != nullptr);

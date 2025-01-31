@@ -3,11 +3,11 @@
 
 namespace coralmicro {
 
-    void get_tof_grid(struct jsonrpc_request* request) {
-        TofData tof_data;
+   void get_tof_grid(struct jsonrpc_request* request) {
+        VL53L8CX_ResultsData results;
         
         // Try to get latest TOF frame without waiting
-        if (xQueuePeek(g_tof_queue_m7, &tof_data, 0) != pdTRUE) {
+        if (xQueuePeek(g_tof_queue_m7, &results, 0) != pdTRUE) {
             jsonrpc_return_error(request, -1, "No TOF data available", nullptr);
             return;
         }
@@ -15,8 +15,8 @@ namespace coralmicro {
         // Start building the distances array
         std::string distances_array = "[";
         for (int i = 0; i < 64; i++) {  // 8x8 grid = 64 elements
-            if (tof_data.tof_results.nb_target_detected[i] > 0) {
-                distances_array += std::to_string(tof_data.tof_results.distance_mm[i]);
+            if (results.nb_target_detected[i] > 0) {
+                distances_array += std::to_string(results.distance_mm[i]);
             } else {
                 distances_array += "0";  // No target detected
             }
@@ -28,40 +28,54 @@ namespace coralmicro {
         jsonrpc_return_success(
             request,
             "{%Q: %s, %Q: %d}",
-            "distances", distances_array.c_str()
+            "distances", distances_array.c_str(),
+            "temperature", results.silicon_temp_degc
         );
     }
 
-    // In rpc_task.cc
+
+    // Cache the last successful frame to reduce queue access
+    static CameraData cached_frame;
+    static bool has_cached_frame = false;
+    static TickType_t last_frame_time = 0;
+
     void get_frame(struct jsonrpc_request* request) {
-        CameraData camera_data;
+        // First check if we have a recent cached frame (less than 100ms old)
+        TickType_t current_time = xTaskGetTickCount();
+        bool need_new_frame = !has_cached_frame || 
+                            (current_time - last_frame_time) > pdMS_TO_TICKS(100);
         
-        // Copy the entire structure including the vector
-        if (xQueuePeek(g_camera_queue_m7, &camera_data, 0) != pdTRUE) {
-            jsonrpc_return_error(request, -1, "No camera data available", nullptr);
-            return;
+        if (need_new_frame) {
+            // Try to get a new frame from the queue
+            if (xQueuePeek(g_camera_queue_m7, &cached_frame, 0) != pdTRUE) {
+                jsonrpc_return_error(request, -1, "No camera data available", nullptr);
+                return;
+            }
+            
+            if (!cached_frame.image_data || cached_frame.image_data->empty()) {
+                jsonrpc_return_error(request, -2, "Camera data is empty", nullptr);
+                return;
+            }
+
+            has_cached_frame = true;
+            last_frame_time = current_time;
         }
 
-        // Verify data is valid
-        if (camera_data.image_data.empty()) {
-            jsonrpc_return_error(request, -2, "Camera data is empty", nullptr);
-            return;
-        }
-
-        // Send response
+        // Use the cached frame
         jsonrpc_return_success(
             request,
             "{%Q: %d, %Q: %d, %Q: %V}",
-            "width", camera_data.width,
-            "height", camera_data.height,
-            "base64_data", camera_data.image_data.size(), camera_data.image_data.data()
+            "width", cached_frame.width,
+            "height", cached_frame.height,
+            "base64_data", cached_frame.image_data->size(), 
+            cached_frame.image_data->data()
         );
     }
 
     void rpc_task(void* parameters) {
         (void)parameters;
         
-        printf("RPC task starting...\r\n");
+        printf("RPC task starting with increased priority...\r\n");
         
         std::string usb_ip;
         if (!GetUsbIpAddress(&usb_ip)) {
@@ -70,11 +84,21 @@ namespace coralmicro {
         }
         printf("Starting Stream Service on: %s\r\n", usb_ip.c_str());
 
+        // Initialize RPC server with increased timeout
         jsonrpc_init(nullptr, nullptr);
         jsonrpc_export("get_image_from_camera", get_frame);
         jsonrpc_export("get_tof_grid", get_tof_grid);
-        UseHttpServer(new JsonRpcHttpServer);
+        
+        // Create HTTP server with custom configuration
+        auto server = new JsonRpcHttpServer();
+        UseHttpServer(server);
 
+        // Reset frame cache state
+        has_cached_frame = false;
+        last_frame_time = 0;
+
+        printf("RPC server ready (high priority)\r\n");
         vTaskSuspend(nullptr);
     }
+
 }
