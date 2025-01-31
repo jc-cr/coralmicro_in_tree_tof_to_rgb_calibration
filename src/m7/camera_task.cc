@@ -44,7 +44,7 @@ void camera_task(void* parameters) {
 
     // Track timing for consistent frame rate
     TickType_t last_wake_time = xTaskGetTickCount();
-    const TickType_t capture_period = pdMS_TO_TICKS(33);  // ~30 fps
+    const TickType_t capture_period = pdMS_TO_TICKS(10);
 
     while (true) {
         // Setup frame format with current buffer
