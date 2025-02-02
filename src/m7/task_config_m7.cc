@@ -6,6 +6,7 @@
 
 // Task implementations
 #include "m7/camera_task.hh"
+#include "m7/led_task.hh"
 #include "m7/rpc_task.hh"
 #include "m7/tof_task.hh"
 
@@ -44,6 +45,14 @@ constexpr TaskConfig kM7TaskConfigs[] = {
         STACK_SIZE_LARGE,
         0,
         TASK_PRIORITY_HIGH,
+        nullptr
+    },
+    {
+        led_task,
+        "LED_Task",
+        STACK_SIZE_MEDIUM,
+        0,
+        TASK_PRIORITY_MEDIUM,
         nullptr
     }
 };

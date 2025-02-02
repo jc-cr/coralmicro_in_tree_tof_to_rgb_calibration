@@ -2,14 +2,10 @@
 #include "third_party/freertos_kernel/include/FreeRTOS.h"
 #include "third_party/freertos_kernel/include/task.h"
 
-// Starting M4 core 
 #include "startup_banner.hh"
 
 #include "m7/task_config_m7.hh"
 #include "m7/m7_queues.hh"
-
-#include <cstdio>
-#include "libs/base/led.h"
 
 namespace coralmicro {
 namespace {
@@ -37,9 +33,6 @@ namespace {
 
         // Initialize M7 tasks
         setup_tasks();
-
-        // Set status LED
-        LedSet(Led::kStatus, true);
 
 
         while (true) {

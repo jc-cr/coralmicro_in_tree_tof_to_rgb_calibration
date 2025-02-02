@@ -13,6 +13,8 @@ set(M7_TASK_SOURCES
     src/m7/tof_task.cc
     src/m7/camera_task.cc
     src/m7/rpc_task.cc
+    src/m7/led_task.cc
+    src/m7/gpio_control.s
 )
 
 # Define paths for task configuration
