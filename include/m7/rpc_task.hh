@@ -7,6 +7,8 @@
 
 #include "m7/m7_queues.hh"
 
+#include "global_config.hh"
+
 
 namespace coralmicro {
     void rpc_task(void* parameters);

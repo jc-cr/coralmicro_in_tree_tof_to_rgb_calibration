@@ -1,9 +1,8 @@
 // rpc_task.cc
 #include "rpc_task.hh"
-
 namespace coralmicro {
-
-   void get_tof_grid(struct jsonrpc_request* request) {
+    
+    void get_tof_grid(struct jsonrpc_request* request) {
         VL53L8CX_ResultsData results;
         
         // Try to get latest TOF frame without waiting
@@ -12,24 +11,14 @@ namespace coralmicro {
             return;
         }
 
-        // Start building the distances array
-        std::string distances_array = "[";
-        for (int i = 0; i < 64; i++) {  // 8x8 grid = 64 elements
-            if (results.nb_target_detected[i] > 0) {
-                distances_array += std::to_string(results.distance_mm[i]);
-            } else {
-                distances_array += "0";  // No target detected
-            }
-            if (i < 63) distances_array += ",";
-        }
-        distances_array += "]";
+        // Get current mode value
+        uint8_t current_mode = g_tof_resolution.load();
 
-        // Return as a JSON object with the distances array and temperature
         jsonrpc_return_success(
             request,
-            "{%Q: %s, %Q: %d}",
-            "distances", distances_array.c_str(),
-            "temperature", results.silicon_temp_degc
+            "{%Q: %d, %Q: %V}",
+            "mode", current_mode,
+            "results", sizeof(VL53L8CX_ResultsData), &results
         );
     }
 
@@ -76,6 +65,8 @@ namespace coralmicro {
         (void)parameters;
         
         printf("RPC task starting with increased priority...\r\n");
+
+
         
         std::string usb_ip;
         if (!GetUsbIpAddress(&usb_ip)) {

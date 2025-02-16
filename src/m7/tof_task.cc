@@ -3,60 +3,11 @@
 
 namespace coralmicro {
 
-    void print_results(VL53L8CX_ResultsData* results) {
-        // Print header with temperature
-        printf("\r\n=== VL53L8CX Sensor Reading (Temp: %d°C) ===\r\n\r\n", 
-            results->silicon_temp_degc);
-        
-        // Print column headers
-        printf("     ");
-        for(int col = 0; col < 8; col++) {
-            printf("  C%d   ", col);
-        }
-        printf("\r\n");
-        
-        // Print separator
-        printf("     ");
-        for(int col = 0; col < 8; col++) {
-            printf("------");
-        }
-        printf("\r\n");
-        
-        // Print each row
-        for(int row = 0; row < 8; row++) {
-            printf("R%d | ", row);
-            for(int col = 0; col < 8; col++) {
-                int zone = row * 8 + col;
-                
-                if(results->nb_target_detected[zone] == 0) {
-                    printf(" ---- ");
-                } else {
-                    // Only show distance in mm, padded to 4 digits
-                    printf("%5d ", results->distance_mm[zone]);
-                }
-            }
-            printf("|\r\n");
-        }
-        
-        // Print separator
-        printf("     ");
-        for(int col = 0; col < 8; col++) {
-            printf("------");
-        }
-        printf("\r\n\r\n");
-        
-        // Print statistics for valid measurements only
-        printf("Valid measurements (Status=5):\r\n");
-        for(uint8_t i = 0; i < kResolution; i++) {
-            if(results->nb_target_detected[i] > 0 && 
-            results->target_status[i] == 5) {
-                printf("Zone %2d: %4dmm (Signal: %4ld)\r\n",
-                    i, 
-                    results->distance_mm[i],
-                    results->signal_per_spad[i]);
-            }
-        }
-        printf("\r\n");  // Extra line for spacing between updates
+    bool print_data_sample_flag = false;
+
+
+    void print_task_starting() {
+        printf("TOF task starting...\r\n");
     }
 
     bool init_gpio() {
@@ -110,7 +61,6 @@ namespace coralmicro {
     }
 
     bool init_sensor(VL53L8CX_Configuration* dev) {
-
         uint8_t status;
         uint8_t isAlive = 0;
         
@@ -125,9 +75,6 @@ namespace coralmicro {
         }
         printf("Sensor is alive\r\n");
         
-        // Add delay before initialization
-        vTaskDelay(pdMS_TO_TICKS(10));
-        
         // Initialize sensor
         status = vl53l8cx_init(dev);
         if (status != VL53L8CX_STATUS_OK) {
@@ -136,20 +83,14 @@ namespace coralmicro {
         }
         printf("Sensor initialized\r\n");
         
-        // Add delay after initialization
-        vTaskDelay(pdMS_TO_TICKS(100));
         
-        // Set resolution
-        status = vl53l8cx_set_resolution(dev, kResolution);
+        status = vl53l8cx_set_resolution(dev, g_tof_resolution.load());
         if (status != VL53L8CX_STATUS_OK) {
             print_sensor_error("setting resolution", status);
             return false;
         }
-        printf("Resolution set to 8x8\r\n");
-        
-        // Add delay between configuration steps
-        vTaskDelay(pdMS_TO_TICKS(10));
-        
+        printf("Resolution set to 4x4\r\n");
+
         // Set ranging mode to continuous
         status = vl53l8cx_set_ranging_mode(dev, VL53L8CX_RANGING_MODE_CONTINUOUS);
         if (status != VL53L8CX_STATUS_OK) {
@@ -158,34 +99,31 @@ namespace coralmicro {
         }
         printf("Ranging mode set to continuous\r\n");
         
-        vTaskDelay(pdMS_TO_TICKS(10));
-        
-        // Set ranging frequency
-        status = vl53l8cx_set_ranging_frequency_hz(dev, kRangingFrequency);
+        // Increase ranging frequency for better temporal resolution
+        status = vl53l8cx_set_ranging_frequency_hz(dev, kRangingFrequency); // Max 60Hz for 4x4
         if (status != VL53L8CX_STATUS_OK) {
             print_sensor_error("setting ranging frequency", status);
             return false;
         }
-        printf("Ranging frequency set to %d Hz\r\n", kRangingFrequency);
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-        
-        // Set integration time
-        status = vl53l8cx_set_integration_time_ms(dev, kIntegrationTime);
+        printf("Ranging frequency set to %i Hz", kRangingFrequency);
+
+        // Set target order to closest first
+        status = vl53l8cx_set_target_order(dev, VL53L8CX_TARGET_ORDER_CLOSEST);
         if (status != VL53L8CX_STATUS_OK) {
-            print_sensor_error("setting integration time", status);
+            print_sensor_error("setting target order", status);
             return false;
         }
-        printf("Integration time set to %d ms\r\n", kIntegrationTime);
-        
-        // Final delay before returning
-        vTaskDelay(pdMS_TO_TICKS(50));
-        
-        return true;
-    }
+        printf("Target order set to closest first\r\n");
 
-    void print_task_starting() {
-        printf("TOF task starting...\r\n");
+        // Reduce sharpener to improve detection of distant objects
+        status = vl53l8cx_set_sharpener_percent(dev, kSharpnerValue);
+        if (status != VL53L8CX_STATUS_OK) {
+            print_sensor_error("setting sharpener", status);
+            return false;
+        }
+        printf("Sharpener set to %i%%\r\n", kSharpnerValue);
+
+        return true;
     }
 
     void print_task_ok() {
@@ -248,7 +186,9 @@ namespace coralmicro {
         
         // Main loop with controlled timing
         TickType_t last_wake_time = xTaskGetTickCount();
-        const TickType_t frequency = pdMS_TO_TICKS(66);  // ~15Hz
+
+        // 30 Hz
+        const TickType_t frequency = pdMS_TO_TICKS(33);
 
         while (true) {
             uint8_t isReady = 0;
@@ -260,6 +200,51 @@ namespace coralmicro {
                 status = vl53l8cx_get_ranging_data(dev.get(), results.get());
 
                 if (status == VL53L8CX_STATUS_OK) {
+                    if (!print_data_sample_flag)
+                    {
+
+                    printf("\nVL53L8CX_ResultsData structure details:\n\r");
+                    printf("Total struct size: %u bytes\n\r", (uint32_t)sizeof(VL53L8CX_ResultsData));
+                    printf("Field sizes and offsets:\n\r");
+                    printf("silicon_temp_degc: size=%u, offset=%u\n\r", 
+                        (uint32_t)sizeof(results->silicon_temp_degc), 
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, silicon_temp_degc));
+                    printf("ambient_per_spad: size=%u, offset=%u\n\r",
+                        (uint32_t)sizeof(results->ambient_per_spad),
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, ambient_per_spad));
+                    printf("nb_target_detected: size=%u, offset=%u\n\r", 
+                        (uint32_t)sizeof(results->nb_target_detected),
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, nb_target_detected));
+                    printf("nb_spads_enabled: size=%u, offset=%u\n\r",
+                        (uint32_t)sizeof(results->nb_spads_enabled),
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, nb_spads_enabled));
+                    printf("signal_per_spad: size=%u, offset=%u\n\r",
+                        (uint32_t)sizeof(results->signal_per_spad),
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, signal_per_spad));
+                    printf("range_sigma_mm: size=%u, offset=%u\n\r",
+                        (uint32_t)sizeof(results->range_sigma_mm),
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, range_sigma_mm));
+                    printf("distance_mm: size=%u, offset=%u\n\r",
+                        (uint32_t)sizeof(results->distance_mm),
+                        (uint32_t)offsetof(VL53L8CX_ResultsData, distance_mm));
+
+                        // Print sample data
+                        printf("\r\nTOF Grid (mm):\r\n");
+                        printf("    C0    C1    C2    C3\r\n");
+                        for(int row = 0; row < 4; row++) {
+                            printf("R%d:", row);
+                            for(int col = 0; col < 4; col++) {
+                                int idx = row * 4 + col;
+                                printf(" %4d", results->distance_mm[idx]);
+                            }
+                            printf("\r\n");
+                        }
+
+                        print_data_sample_flag = true;
+                    }
+
+
+
                     if (xQueueOverwrite(g_tof_queue_m7, results.get()) != pdTRUE) {
                         printf("Failed to send TOF data to queue\r\n");
                     }
