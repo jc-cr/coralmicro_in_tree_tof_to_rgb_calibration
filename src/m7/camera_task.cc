@@ -42,9 +42,6 @@ void camera_task(void* parameters) {
     camera_data.height = CameraConfig::kHeight;
     camera_data.format = CameraConfig::kFormat;
 
-    // Track timing for consistent frame rate
-    TickType_t last_wake_time = xTaskGetTickCount();
-    const TickType_t capture_period = pdMS_TO_TICKS(10);
 
     while (true) {
         // Setup frame format with current buffer
@@ -69,9 +66,9 @@ void camera_task(void* parameters) {
                 current_buffer = (current_buffer == buffer1) ? buffer2 : buffer1;
             }
         }
+
+        vTaskDelay(pdMS_TO_TICKS(5));
         
-        // Use vTaskDelayUntil for consistent frame timing
-        vTaskDelayUntil(&last_wake_time, capture_period);
     }
 }
 
